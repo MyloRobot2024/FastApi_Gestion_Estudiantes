@@ -6,15 +6,20 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from urllib.parse import quote_plus
 import os
 
-# Configuración de la base de datos usando variables de entorno
-# En Render, configura estas variables de entorno en el dashboard
+# Configuración de la base de datos usando variables de entorno separadas
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    # Fallback para desarrollo local
-    PASSWORD = "uPxBHn]Ag9H~N4'K"
-    ENCODED_PASSWORD = quote_plus(PASSWORD)
-    DATABASE_URL = f"postgresql://postgres:{ENCODED_PASSWORD}@20.84.99.214:443/jf100124"
+    # Construir DATABASE_URL desde variables individuales
+    DB_HOST = os.getenv("DB_HOST", "20.84.99.214")
+    DB_PORT = os.getenv("DB_PORT", "443")
+    DB_NAME = os.getenv("DB_NAME", "jf100124")
+    DB_USER = os.getenv("DB_USER", "postgres")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "uPxBHn]Ag9H~N4'K")
+    
+    # Codificar la contraseña para la URL
+    ENCODED_PASSWORD = quote_plus(DB_PASSWORD)
+    DATABASE_URL = f"postgresql://{DB_USER}:{ENCODED_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # Configuración de la base de datos con SQLAlchemy
 engine = create_engine(DATABASE_URL)
@@ -168,5 +173,14 @@ def eliminar_estudiante(id: int, db: Session = Depends(get_db)):
 # Solo para desarrollo local
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+    port = int(os.getenv("PORT", 8000))
+    environment = os.getenv("ENVIRONMENT", "development")
+    
+    # Configurar reload solo en desarrollo
+    reload = environment == "development"
+    
+    print(f"Iniciando servidor en puerto {port}")
+    print(f"Entorno: {environment}")
+    print(f"Reload activado: {reload}")
+    
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=reload)
